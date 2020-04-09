@@ -400,7 +400,7 @@ def handle_operations(operations_list):
                             update_collateral_info['_id'] = result_obj['_id']
                         update_collateral_info['mortgager_name'] = operation['mortgager_name']
                         update_collateral_info['beneficiary_name'] = operation['beneficiary_name']
-                        update_collateral_info['collateral'] = collateral
+                        update_collateral_info['collateral'] = str(operation["collateral"])
                         conn_db.account_collateral.save(update_collateral_info)
                     else:
                         conn_db.account_collateral.remove({'mortgager':mortgager_id, 'beneficiary':beneficiary_id})
