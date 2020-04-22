@@ -80,12 +80,11 @@ def parse_gas_collateral_operations(gph, block_num, block_time, transactions):
 
 def data2db(): 
     while 1:
-        if operations_deque:
+        if op_d:
             try:
                 op_deque_lock.acquire()
                 operations_list = operations_deque.popleft()
                 op_deque_lock.release()
-                logger.debug(operations_list)
                 handle_gas_collateral_operations(operations_list)
             except Exception as e:
                 logger.error("except: '{}'".format(repr(e)))
@@ -95,7 +94,7 @@ def handle_gas_collateral_operations(operations_list):
     if operations_list:
         conn = pymongo.MongoClient(mongodb_params['host'], mongodb_params['port'])
         conn_db = conn[mongodb_params['db_name']]
-        #registry = gauges['registry']
+        registry = gauges['registry']
         for operation in operations_list:
             op_id = operation["op_id"]
             if op_id == operations['update_collateral_for_gas']:
@@ -118,7 +117,7 @@ def handle_gas_collateral_operations(operations_list):
                         'mortgager_name': operation['mortgager_name'],
                         'beneficiary_name': operation['beneficiary_name']
                     }
-                    #conn_db.op_update_collateral.insert(update_collateral_info)
+                    conn_db.op_update_collateral.insert(update_collateral_info)
 
                     collateral = int(operation["collateral"])
                     if collateral > 0:
@@ -137,10 +136,9 @@ def handle_gas_collateral_operations(operations_list):
         conn.close()
 
 if __name__ == '__main__':
-    logger.info("=================== check collateral gas start ====================")
     logger.info('args: {}'.format(sys.argv))
     if len(sys.argv) < 3:
-        logger.error('Usage: python3 check_gas_collateral.py block_number_start, block_number_end')
+        logger.error('Usage: python3 check.py block_number_start, block_number_end')
         sys.exit(1)
     start = int(sys.argv[1])
     end = int(sys.argv[2])

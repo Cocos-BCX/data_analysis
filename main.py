@@ -39,8 +39,12 @@ def check_block():
         logger.info('check block number: {}'.format(block_num))
         try:
             block = gph.rpc.get_block(block_num)
+            if block is None:
+                logger.debug("block({}) is None. block num: {}".format(block, block_num))
+                return
             #witness_id = block['witness']
-            block_witness = gph.rpc.get_object(gph.rpc.get_object(block['witness'])['witness_account'])['name']
+            witness_obj = gph.rpc.get_object(block['witness'])
+            witness_account_obj = gph.rpc.get_object(witness_obj['witness_account'])
         except Exception as e:
             logger.error('get_object exception. block {}, error {}'.format(block_num, repr(e)))
             return
@@ -58,7 +62,9 @@ def check_block():
         block_data = {
             "block_num": block_num,
             "time": block_time,
-            "witness": block_witness,
+            "witness_id": witness_obj["id"],
+            "witness_account_id": witness_account_obj['id'],
+            "witness_account_name":witness_account_obj["name"],
             "witness_sign": witness_sign,
             "transactions_total": trx_total,
             "transactions_id": transactions_id,
@@ -120,7 +126,9 @@ def listen_block():
             try:
                 block = gph.rpc.get_block(block_num)
                 #witness_id = block['witness']
-                block_witness = gph.rpc.get_object(gph.rpc.get_object(block['witness'])['witness_account'])['name']
+                # block_witness = gph.rpc.get_object(gph.rpc.get_object(block['witness'])['witness_account'])['name']
+                witness_obj = gph.rpc.get_object(block['witness'])
+                witness_account_obj = gph.rpc.get_object(witness_obj['witness_account'])
             except Exception as e:
                 logger.error('get_object exception. block {}, error {}'.format(block_num, repr(e)))
             block_time = block['timestamp']
@@ -137,7 +145,9 @@ def listen_block():
             block_data = {
                 "block_num": block_num,
                 "time": block_time,
-                "witness": block_witness,
+                "witness_id": witness_obj["id"],
+                "witness_account_id": witness_account_obj['id'],
+                "witness_account_name":witness_account_obj["name"],
                 "witness_sign": witness_sign,
                 "transactions_total": trx_total,
                 "transactions_id": transactions_id,
@@ -200,6 +210,7 @@ def block2db():
                 block_info_deque_lock.acquire()
                 block = block_info_q.popleft()
                 block_info_deque_lock.release()
+                # logger.debug(">>> block: {}".format(block))
                 #update mongodb
                 conn = pymongo.MongoClient(mongodb_params['host'], mongodb_params['port'])
                 conn_db = conn[mongodb_params['db_name']]
@@ -207,12 +218,34 @@ def block2db():
                     conn_db.block.insert_one({
                         'block_num': block["block_num"], 
                         'time': block["time"], 
-                        'witness': block["witness"], 
-                        'witness_sign': block["witness_sign"], 
+                        'witness': block["witness_account_name"], 
+                        'witness_id': block["witness_id"], 
+                        'witness_account_id': block["witness_account_id"], 
+                        # 'witness_sign': block["witness_sign"], 
+                        'witness_sign': "", 
                         'transactions_id': str(block["transactions_id"]), 
                         'transactions_total': block["transactions_total"], 
                         'operations_total': block["operations_total"]
                     })
+
+                    # witness generate block count
+                    witness_blocks = {
+                        'witness_id': block["witness_id"],
+                        'witness_account_id': block["witness_account_id"],
+                        'witness_account_name': block["witness_account_name"],
+                        "last_block": str(block["block_num"]),
+                        "last_block_time": block["time"]
+                    }
+                    witness_object = conn_db.witnesses.find_one({'witness_id':block["witness_id"]})
+                    if (witness_object is not None):
+                        if (int(block["block_num"]) > int(witness_object["last_block"])):
+                            witness_blocks['_id'] = witness_object['_id']
+                            witness_blocks["total"] = str(int(witness_object["total"]) + 1)
+                            conn_db.witnesses.save(witness_blocks)
+                    else:
+                        logger.info("witness({}) block:{}, not exists.".format(block["witness_id"], block["block_num"]))
+                        witness_blocks["total"] = "1"
+                        conn_db.witnesses.save(witness_blocks)
                 except Exception as e:
                     logger.error("block: {}, except: '{}'".format(block["block_num"], repr(e)))
                 finally:
