@@ -5,10 +5,12 @@ import sys
 import datetime
 import time
 
-from config import *
+# from config import *
 from utils import Logging
 
 logger = Logging().getLogger()
+
+nodeaddress = "wss://api.cocosbcx.net"
 
 AFTER_DAYS = 7
 last_block_date = "1970-01-01" # random default date
@@ -96,8 +98,96 @@ if __name__ == '__main__':
     check_block(start_date)
 
 '''
-AFTER_DAYS = 3 test record:
+1. 功能
+统计每天的链上区块、交易和operation的总数。
+
+输入一个开始日期，统计该日期之后N天的数据，N由AFTER_DAYS全局变量控制，默认是7，可以根据统计需求任意修改。
+如果开始日期和最新区块的间隔小于N天，统计最新区块之前的N天数据。
+
+2. 使用
+依赖： python-sdk
+
+python3 check_count.py YYYY-MM-DD 
+
+说明： 
+日期格式： YYYY-MM-DD
+
+3. 测试
+AFTER_DAYS = 7 test record:
 ---------------------------------------------------
+dev@ck-chain-slave-prod-001:~/cocos/data_analysis# nohup python3 check_count.py 2020-06-24 >> console.log 2>&1 &
+2020-07-06 16:51:29.443240 [server] [<module>:91] [INFO]: args: ['check_count.py', '2020-06-24']
+2020-07-06 16:51:29.585975 [server] [check_block:23] [INFO]: info: {'time': '2020-07-06T08:51:28', 'accounts_registered_this_interval': 18, 'recently_missed_count': 0, 'next_maintenance_time': '2020-07-07T00:00:00', 'current_transaction_count': 0, 'current_witness': '1.6.36', 'id': '2.1.0', 'head_block_number': 9329140, 'last_irreversible_block_num': 9329128, 'current_aslot': 9518886, 'witness_budget': '272600000000', 'head_block_id': '008e59f4f5fa46c80f5a7fd3dfad4dbe204fafc9', 'last_budget_time': '2020-07-06T00:00:00', 'dynamic_flags': 0, 'recent_slots_filled': '340282366920938463463374607431768211455'}
+2020-07-06 16:51:29.586223 [server] [check_block:25] [INFO]: time: 2020-07-06T08:51:28
+2020-07-06 16:51:29.589969 [server] [check_block:33] [INFO]: current_date: 2020-07-06, start_date: 2020-06-24, seconds: 1036800
+2020-07-06 16:51:29.590146 [server] [check_block:41] [INFO]: after 7 days
+2020-07-06 16:51:29.590254 [server] [check_block:46] [INFO]: [block num]start: 8810740, end: 9113140, last: 9329140, seconds: 1036800
+2020-07-06 16:51:29.599740 [server] [check_block:58] [INFO]: last_date: 1970-01-01, block_num: 8810740, block_id: 008670f41d0a413935d202c7ee7dbb14f79f0835, block timestamp: 2020-06-24T08:48:12
+2020-07-06 16:55:49.139138 [server] [check_block:58] [INFO]: last_date: 2020-06-24, block_num: 8838092, block_id: 0086dbcca27f73402123c6be0755a6ecedf2d73c, block timestamp: 2020-06-25T00:00:00
+2020-07-06 16:55:49.139421 [server] [check_block:60] [INFO]: >>>>>>>>>>>> 2020-06-24: {'block_total': 27352, 'trx_total': 868, 'ops_total': 868}
+2020-07-06 17:02:38.956799 [server] [check_block:58] [INFO]: last_date: 2020-06-25, block_num: 8881283, block_id: 00878483e65099b36de8a288347eab492ffee59e, block timestamp: 2020-06-26T00:00:00
+2020-07-06 17:02:38.957072 [server] [check_block:60] [INFO]: >>>>>>>>>>>> 2020-06-25: {'block_total': 43191, 'trx_total': 1726, 'ops_total': 1726}
+2020-07-06 17:09:30.549694 [server] [check_block:58] [INFO]: last_date: 2020-06-26, block_num: 8924474, block_id: 00882d3a8e787b69564c8a26e7b4bf9dbf65db20, block timestamp: 2020-06-27T00:00:00
+2020-07-06 17:09:30.550018 [server] [check_block:60] [INFO]: >>>>>>>>>>>> 2020-06-26: {'block_total': 43191, 'trx_total': 2043, 'ops_total': 2043}
+2020-07-06 17:16:21.686469 [server] [check_block:58] [INFO]: last_date: 2020-06-27, block_num: 8967666, block_id: 0088d5f2cd22ecd5d3194e529274704d2f5bf8e5, block timestamp: 2020-06-28T00:00:00
+2020-07-06 17:16:21.686755 [server] [check_block:60] [INFO]: >>>>>>>>>>>> 2020-06-27: {'block_total': 43192, 'trx_total': 2436, 'ops_total': 2436}
+2020-07-06 17:23:12.818186 [server] [check_block:58] [INFO]: last_date: 2020-06-28, block_num: 9010857, block_id: 00897ea99a4b7e7e6d49e292a4a9e1190bd204fa, block timestamp: 2020-06-29T00:00:00
+2020-07-06 17:23:12.818479 [server] [check_block:60] [INFO]: >>>>>>>>>>>> 2020-06-28: {'block_total': 43191, 'trx_total': 2885, 'ops_total': 2885}
+2020-07-06 17:30:03.952442 [server] [check_block:58] [INFO]: last_date: 2020-06-29, block_num: 9054047, block_id: 008a275fbbaf00c7faa2d130217659e8963525b9, block timestamp: 2020-06-30T00:00:00
+2020-07-06 17:30:03.952740 [server] [check_block:60] [INFO]: >>>>>>>>>>>> 2020-06-29: {'block_total': 43190, 'trx_total': 2770, 'ops_total': 2770}
+2020-07-06 17:36:56.448184 [server] [check_block:58] [INFO]: last_date: 2020-06-30, block_num: 9097239, block_id: 008ad01761e893ecf4550c6c1fe37fc37e685be9, block timestamp: 2020-07-01T00:00:00
+2020-07-06 17:36:56.448449 [server] [check_block:60] [INFO]: >>>>>>>>>>>> 2020-06-30: {'block_total': 43192, 'trx_total': 2928, 'ops_total': 2928}
+2020-07-06 17:39:28.038644 [server] [check_block:79] [INFO]:
 
+>>>>>>>>>>>>>>>>>>>>>>>>>>> total result:
+{'2020-06-24': {'block_total': 27352, 'trx_total': 868, 'ops_total': 868}, '2020-06-30': {'block_total': 43192, 'trx_total': 2928, 'ops_total': 2928}, '2020-06-27': {'block_total': 43192, 'trx_total': 2436, 'ops_total': 2436}, '2020-06-26': {'block_total': 43191, 'trx_total': 2043, 'ops_total': 2043}, '2020-06-28': {'block_total': 43191, 'trx_total': 2885, 'ops_total': 2885}, '2020-06-29': {'block_total': 43190, 'trx_total': 2770, 'ops_total': 2770}, '2020-06-25': {'block_total': 43191, 'trx_total': 1726, 'ops_total': 1726}, '2020-07-01': {'block_total': 15902, 'trx_total': 1061, 'ops_total': 1061}}
 
+3. 结果格式和说明
+total result json:
+{
+    "2020-06-24":{
+        "block_total":27352,
+        "trx_total":868,
+        "ops_total":868
+    },
+    "2020-06-25":{
+        "block_total":43191,
+        "trx_total":1726,
+        "ops_total":1726
+    },
+    "2020-06-26":{
+        "block_total":43191,
+        "trx_total":2043,
+        "ops_total":2043
+    },
+    "2020-06-27":{
+        "block_total":43192,
+        "trx_total":2436,
+        "ops_total":2436
+    },
+    "2020-06-28":{
+        "block_total":43191,
+        "trx_total":2885,
+        "ops_total":2885
+    },
+    "2020-06-29":{
+        "block_total":43190,
+        "trx_total":2770,
+        "ops_total":2770
+    },
+    "2020-06-30":{
+        "block_total":43192,
+        "trx_total":2928,
+        "ops_total":2928
+    },
+    "2020-07-01":{
+        "block_total":15902,
+        "trx_total":1061,
+        "ops_total":1061
+    }
+}
+
+说明：首尾日期的数据统计不完整，忽略掉。
+原因：获取的区块是根据日期转换计算的，没有做到很细致。
+解决： 可以把计算的日期范围变长，比如：AFTER_DAYS调大; 输入的开始日期更早一些。
 '''
